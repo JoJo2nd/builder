@@ -1,0 +1,52 @@
+{
+    "global": {
+        "version": 2
+    },
+    "prebuild": [],
+    "processors": {
+        "mesh":{
+            "proc": "python process_mesh.py",
+            "defaultprocessoptions" : {
+                "generatenormals" : true
+            },
+            "version": "0.1.2"
+        },
+        "texture":{
+            "proc": "python process_texture.py",
+            "defaultprocessoptions" : {
+                "compress" : true
+            },
+            "version": "0.1.0"
+        },
+        "shader":{
+            "proc": "python process_shader.py",
+            "version": "0.1.0",
+            "defaultprocessoptions" : {
+                "sysincludes": [
+                    "%(asset_directory)/../../external/bgfx/src"
+                ],
+                "platform": "windows",
+                "platformext": "--debug"
+            }
+        },
+        "raw":{
+            "proc": "python process_blob.py",
+            "version": "0.1",
+            "defaultprocessoptions" : {
+            }
+        },
+        "2dvoxelgrid": {
+            "proc": "python process_2dvoxelgrid.py",
+            "version": "0.1",
+            "defaultprocessoptions" : {
+            }  
+        },
+        "fbs": {
+            "proc": "python process_fbs.py",
+            "version": "0.1.0",
+            "defaultprocessoptions" : {
+            }  
+        }
+    },
+   "postbuild": []
+}
