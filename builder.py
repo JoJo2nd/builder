@@ -51,8 +51,11 @@
 ##     "friendlyname": "Bunny Mesh",
 ##     # Relative file paths for files to check timestamps against.
 ##     "inputs": ["bunny.obj"],
-##     # List of UUID's that must be built before this asset
-##     "builddeps": [],
+##     # List of UUID's that must be loaded before this asset
+##     "prerequisites": [
+##          "{00000000-1234-5678-9000-000000000101}",
+##          "{00000000-1234-5678-9000-000000000102}",
+##     ],
 ##     # processoptions contains any asset specific parameters to pass to the process that handles this asset.
 ##     "processoptions": {
 ##         "meshoptions" : []
@@ -222,7 +225,12 @@ def main():
                     final_fname = "%s_%02x"%(fname, count)
                     print "friendly name conflict. Changing", fname, "to", final_fname
                     count += 1
-                FirendlyNames[final_fname] = [asset['assetmetadata']['uuid'].replace('}', '').replace('{', '').replace('-', '')+'.bin']
+                FirendlyNames[final_fname] = {}
+                FirendlyNames[final_fname]['filepath'] = [asset['assetmetadata']['uuid'].replace('}', '').replace('{', '').replace('-', '')+'.bin']
+                if 'prerequisites' in asset['assetmetadata']:
+                    FirendlyNames[final_fname]['prerequisites'] = [x.replace('}', '').replace('{', '').replace('-', '')+'.bin' for x in asset['assetmetadata']['prerequisites']]
+                else:
+                    FirendlyNames[final_fname]['prerequisites'] = []
 
                 asset_uuid = uuid.UUID(asset['assetmetadata']['uuid'])
                 asset['uuid'] = asset['assetmetadata']['uuid']
