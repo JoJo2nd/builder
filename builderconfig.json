@@ -48,5 +48,7 @@
             }  
         }
     },
-   "postbuild": []
+   "postbuild": [
+        "python create_resource_db.py %(output_directory)\\filelisting.json %(output_directory)\\resourcedb.bin %(asset_directory)\\hart\\fbs\\resourcedb.fbs"
+   ]
 }
