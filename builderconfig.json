@@ -2,7 +2,9 @@
     "global": {
         "version": 2
     },
-    "prebuild": [],
+    "prebuild": [
+        "python gen_py_fbs.py -d %(asset_directory)/hart/fbs -o %(working_directory) -f %(working_directory)/flatc"
+    ],
     "processors": {
         "mesh":{
             "proc": "python process_mesh.py",
@@ -20,7 +22,7 @@
         },
         "shader":{
             "proc": "python process_shader.py",
-            "version": "0.1.0",
+            "version": "0.1.2",
             "defaultprocessoptions" : {
                 "sysincludes": [
                     "%(asset_directory)/../../external/bgfx/src"

@@ -4,11 +4,26 @@ import os.path
 import base64
 from subprocess import Popen, PIPE
 import argparse
+import flatbuffers
+import hart.render.resource.Profile
+import hart.render.resource.ShaderResource
+import hart.render.resource.ShaderCollection
 
 def formatString(s, parameters):
     for k, p in parameters.iteritems():
         s = s.replace("%%(%s)"%(k), p)
     return s
+
+def bytes_from_file(filename, chunksize=8192):
+    with open(filename, "rb") as f:
+        while True:
+            b = f.read(1)
+            if b != "":
+                #for b in chunk:
+                yield b
+            else:
+                break
+
 
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
@@ -43,8 +58,35 @@ if __name__ == '__main__':
     p = Popen(cmdline)
     p.wait()
 
-    with open(tmp_path, 'rb') as bin_file:
-        encoded_data_string = base64.b64encode(bin_file.read())
+    with open(tmp_path) as f:
+        s_bytes = bytearray(f.read())
+
+    builder = flatbuffers.Builder(0)
+
+    hart.render.resource.ShaderResource.ShaderResourceStartMemVector(builder, len(s_bytes))
+    for b in reversed(s_bytes[:-1]):
+        builder.PrependUint8(b)
+    s_mem = builder.EndVector(len(s_bytes))
+    hart.render.resource.ShaderResource.ShaderResourceStart(builder)
+    hart.render.resource.ShaderResource.ShaderResourceAddProfile(builder, hart.render.resource.Profile.Profile.Direct3D11)
+    hart.render.resource.ShaderResource.ShaderResourceAddMem(builder, s_mem)
+    shaderresource = hart.render.resource.ShaderResource.ShaderResourceEnd(builder)
+
+    hart.render.resource.ShaderCollection.ShaderCollectionStartSupportedProfilesVector(builder, 1)
+    builder.PrependUint16(hart.render.resource.Profile.Profile.Direct3D11)
+    profiles = builder.EndVector(1)
+
+    hart.render.resource.ShaderCollection.ShaderCollectionStartShaderArrayVector(builder, 1)
+    builder.PrependUOffsetTRelative(shaderresource)
+    shaders = builder.EndVector(1)
+
+    hart.render.resource.ShaderCollection.ShaderCollectionStart(builder)
+    hart.render.resource.ShaderCollection.ShaderCollectionAddSupportedProfiles(builder, profiles)
+    hart.render.resource.ShaderCollection.ShaderCollectionAddShaderArray(builder, shaders)
+    shadercollection = hart.render.resource.ShaderCollection.ShaderCollectionEnd(builder)
+
+    builder.Finish(shadercollection)
+    encoded_data_string = base64.b64encode(builder.Output())
 
     asset['buildoutput'] = {
         "data": encoded_data_string,

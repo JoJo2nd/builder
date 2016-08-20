@@ -1,23 +1,6 @@
 ##
 ## Create resource_db 
 ##
-
-##struct uuid {
-##    highDword : ulong;
-##    lowDword : ulong;
-##}
-##
-##table ResourceInfo {
-##    friendlyName:string; // friendly name (for debug, could be stripped in release but isn't ATM)
-##    filepath:string; // filepath to open and load
-##    prerequisites:[uint]; // indices of assets that must be loaded before this asset
-##}
-##
-##table ResourceList {
-##    assetUUIDs:[uuid];
-##    assetInfos:[ResourceInfo];
-##}
-
 import sys
 import json
 import os.path
