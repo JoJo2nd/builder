@@ -22,10 +22,11 @@
         },
         "shader":{
             "proc": "python process_shader.py",
-            "version": "0.1.2",
+            "version": "0.1.4",
             "defaultprocessoptions" : {
                 "sysincludes": [
-                    "%(asset_directory)/../../external/bgfx/src"
+                    "%(asset_directory)/../../external/bgfx/src",
+                    "%(asset_directory)/hart/shaders/common"
                 ],
                 "platform": "windows",
                 "platformext": "--debug"
@@ -48,9 +49,15 @@
             "version": "0.1.0",
             "defaultprocessoptions" : {
             }  
+        },
+        "collection": {
+            "proc": "python process_collection.py",
+            "version": "0.1.1",
+            "defaultprocessoptions" : {
+            }  
         }
     },
    "postbuild": [
-        "python create_resource_db.py %(output_directory)\\filelisting.json %(output_directory)\\resourcedb.bin %(asset_directory)\\hart\\fbs\\resourcedb.fbs"
+        "python create_resource_db.py %(output_directory)/filelisting.json %(output_directory)/resourcedb.bin %(asset_directory)/hart/fbs/resourcedb.fbs"
    ]
 }

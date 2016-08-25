@@ -77,10 +77,12 @@ import time
 import base64
 from multiprocessing import Process, Pipe, Pool
 from subprocess import Popen, PIPE
+import shutil
 
 parser = argparse.ArgumentParser(prog='builder',description='Script to convert data from source to binary')
 parser.add_argument('-d','--directory', help='*.asset source directory. Recursive.')
 parser.add_argument('-o','--output', help='binary output directory.')
+parser.add_argument('--clean', help='Delete all cached build data before build.', action='store_true')
 
 def process_asset(in_asset):
     # build and check the cache
@@ -92,6 +94,16 @@ def process_asset(in_asset):
     }
     do_build = True
 
+    # Update the cache so paths are relative to asset directory root
+    # These need resetting before the build & before writing out to disk
+    o_asset_inputs = cache['asset']['inputs']
+    o_filestamps = cache['filestamps']
+    c_asset_inputs = [os.path.relpath(file, in_asset['buildparams']['asset_directory']) for file in cache['asset']['inputs']]
+    c_filestamps = [{'stamp':file['stamp'], 'file':os.path.relpath(file['file'], in_asset['buildparams']['asset_directory'])} for file in cache['filestamps']]
+
+    cache['asset']['inputs'] = c_asset_inputs
+    cache['filestamps'] = c_filestamps
+
     if os.path.isfile(in_asset['cache_file']) and os.path.isfile(in_asset['output_file']):
         with open(in_asset['cache_file']) as f:
             try:
@@ -99,6 +111,10 @@ def process_asset(in_asset):
                     do_build = False
             except:
                 pass
+
+    cache['asset']['inputs'] = o_asset_inputs
+    cache['filestamps'] = o_filestamps
+
     # Build the resource if needed
     if do_build:
         #print "Building asset %s (%s)"%(in_asset['assetmetadata']['friendlyname'], in_asset['uuid'])
@@ -114,8 +130,12 @@ def process_asset(in_asset):
             return {"input": in_asset, "deploy": False, "failed": True}
         else:
             # write an updated cache
+            cache['asset']['inputs'] = c_asset_inputs
+            cache['filestamps'] = c_filestamps
             with open(in_asset['cache_file'], 'wb') as f:
                 f.write(json.dumps(cache, indent=2))
+            cache['asset']['inputs'] = o_asset_inputs
+            cache['filestamps'] = o_filestamps
     else:
         #print "Reusing cached asset %s (%s)"%(in_asset['assetmetadata']['friendlyname'], in_asset['uuid'])
         pass
@@ -198,6 +218,10 @@ def main():
         "working_directory": working_directory, # := Where the script is run from, using for getting binaries
     }
 
+    if args.clean == True:
+        shutil.rmtree(cache_directory, ignore_errors=True)
+        shutil.rmtree(tmp_directory, ignore_errors=True)
+
     with open('builderconfig.json') as f:
         config = json.loads(f.read())
 
@@ -251,6 +275,7 @@ def main():
                 uuid_hex_str = asset_uuid.hex
 
                 asset['cache_directory'] = cache_root
+                asset['asset_directory'] = asset_directory
                 asset['cache_file'] = os.path.join(cache_root, uuid_hex_str + '.cache')
                 asset['tmp_directory'] = getAssetTmpPath(asset_uuid, tmp_directory)
                 asset['input_file'] = os.path.join(cache_root, uuid_hex_str + '.in.json')
