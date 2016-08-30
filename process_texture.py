@@ -7,7 +7,7 @@ from subprocess import Popen, PIPE
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
         asset = json.load(fin)
-    TEXTUREC = os.path.join(asset['buildparams']['working_directory'], '../../external/bgfx/.build/win64_vs2015/bin/texturecRelease')
+    TEXTUREC = os.path.join(asset['buildparams']['working_directory'], 'texturecRelease')
     tmp_path = os.path.join(asset['tmp_directory'],'texc.data.ktx')
     cmd_path = os.path.join(asset['tmp_directory'],'data.txt')
 

@@ -28,7 +28,7 @@ def bytes_from_file(filename, chunksize=8192):
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
         asset = json.load(fin)
-    SHADERC = os.path.join(asset['buildparams']['working_directory'], '../../external/bgfx/.build/win64_vs2015/bin/shadercRelease')
+    SHADERC = os.path.join(asset['buildparams']['working_directory'], 'shadercRelease')
     FLATC = os.path.join(asset['buildparams']['working_directory'], 'flatc')
     tmp_path = os.path.join(asset['tmp_directory'],'shader.data')
     cmd_path = os.path.join(asset['tmp_directory'],'cmdline.txt')
