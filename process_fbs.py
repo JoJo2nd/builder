@@ -4,6 +4,11 @@ import os.path
 import base64
 from subprocess import Popen, PIPE
 
+def formatString(s, parameters):
+    for k, p in parameters.iteritems():
+        s = s.replace("%%(%s)"%(k), p)
+    return s
+
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
         asset = json.load(fin)
@@ -11,7 +16,7 @@ if __name__ == '__main__':
     tmp_dir = asset['tmp_directory']
     info_path = os.path.join(asset['tmp_directory'],'data.txt')
     asset_base = os.path.split(asset['assetpath'])[0]
-    fbs_def_path = os.path.realpath(os.path.join(asset_base, asset['processoptions']['def']))
+    fbs_def_path = formatString(asset['processoptions']['def'], asset['buildparams'])
     obj_path = os.path.realpath(os.path.join(asset_base, asset['processoptions']['input']))
     tmp_path = os.path.join(asset['tmp_directory'], os.path.splitext(os.path.split(obj_path)[1])[0]+'.bin')
 

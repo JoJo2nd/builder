@@ -235,7 +235,7 @@ def main():
     for root, dirs, files in os.walk(args.directory):
         assets += [{'assetpath': os.path.realpath(os.path.join(root, x))} for x in files if os.path.splitext(x)[1] == ".asset"]
 
-    FirendlyNames = {}
+    FriendlyNames = {}
 
     for asset in assets:
         with open(asset['assetpath']) as f:
@@ -245,16 +245,25 @@ def main():
                 fname = asset['assetmetadata']['friendlyname']
                 final_fname = fname
                 count = 1
-                while final_fname in FirendlyNames:
+                while final_fname in FriendlyNames:
                     final_fname = "%s_%02x"%(fname, count)
                     print "friendly name conflict. Changing", fname, "to", final_fname
                     count += 1
-                FirendlyNames[final_fname] = {}
-                FirendlyNames[final_fname]['filepath'] = [asset['assetmetadata']['uuid'].replace('}', '').replace('{', '').replace('-', '')+'.bin']
+
+                FriendlyNames[final_fname] = {}
+                FriendlyNames[final_fname]['filepath'] = [asset['assetmetadata']['uuid'].replace('}', '').replace('{', '').replace('-', '')+'.bin']
+                b = bytearray()
+                b.extend(asset_uuid.bytes)
+                FriendlyNames[final_fname]['assetid'] = {
+                    'highword3': ((b[15]<<24) | (b[14]<<16) | (b[13]<<8) | (b[12])), 
+                    'highword2': ((b[11]<<24) | (b[10]<<16) | (b[ 9]<<8) | (b[ 8])), 
+                    'highword1': ((b[ 7]<<24) | (b[ 6]<<16) | (b[ 5]<<8) | (b[ 4])), 
+                    'lowword'  : ((b[ 3]<<24) | (b[ 2]<<16) | (b[ 1]<<8) | (b[ 0]))
+                }
                 if 'prerequisites' in asset['assetmetadata']:
-                    FirendlyNames[final_fname]['prerequisites'] = [x.replace('}', '').replace('{', '').replace('-', '')+'.bin' for x in asset['assetmetadata']['prerequisites']]
+                    FriendlyNames[final_fname]['prerequisites'] = [x.replace('}', '').replace('{', '').replace('-', '')+'.bin' for x in asset['assetmetadata']['prerequisites']]
                 else:
-                    FirendlyNames[final_fname]['prerequisites'] = []
+                    FriendlyNames[final_fname]['prerequisites'] = []
 
                 asset_uuid = uuid.UUID(asset['assetmetadata']['uuid'])
                 asset['uuid'] = asset['assetmetadata']['uuid']
@@ -289,7 +298,7 @@ def main():
 
     #Generate the friendly name listing
     with open(friendlyname_dict_file, 'wb') as f:
-        f.write(json.dumps(FirendlyNames, indent=2))
+        f.write(json.dumps(FriendlyNames, indent=2))
 
 
     #

@@ -55,6 +55,20 @@
             "version": "0.1.1",
             "defaultprocessoptions" : {
             }  
+        },
+        "material": {
+            "proc": "python process_fbs.py",
+            "version": "0.1.1",
+            "defaultprocessoptions" : {
+                "def": "%(asset_directory)/hart/fbs/material.fbs"
+            }  
+        },
+        "materialsetup": {
+            "proc": "python process_fbs.py",
+            "version": "0.1.1",
+            "defaultprocessoptions" : {
+                "def": "%(asset_directory)/hart/fbs/materialsetup.fbs"
+            }  
         }
     },
    "postbuild": [
