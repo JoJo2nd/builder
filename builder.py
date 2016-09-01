@@ -128,14 +128,7 @@ def process_asset(in_asset):
                 os.remove(in_asset['cache_file'])
             # return failed result
             return {"input": in_asset, "deploy": False, "failed": True}
-        else:
-            # write an updated cache
-            cache['asset']['inputs'] = c_asset_inputs
-            cache['filestamps'] = c_filestamps
-            with open(in_asset['cache_file'], 'wb') as f:
-                f.write(json.dumps(cache, indent=2))
-            cache['asset']['inputs'] = o_asset_inputs
-            cache['filestamps'] = o_filestamps
+
     else:
         #print "Reusing cached asset %s (%s)"%(in_asset['assetmetadata']['friendlyname'], in_asset['uuid'])
         pass
@@ -144,6 +137,20 @@ def process_asset(in_asset):
     # outputJSON['buildoutput']['data'] has the Base64 encoded data we need.
     with open(in_asset['output_file']) as f:
         r_json = json.load(f)
+
+    if do_build:
+        # write an updated cache
+        o_asset_inputs = r_json['assetmetadata']['inputs']
+        o_filestamps = [{"file":f, "stamp":os.path.getmtime(f)} for f in r_json['assetmetadata']['inputs'] ]
+        c_asset_inputs = [os.path.relpath(file, in_asset['buildparams']['asset_directory']) for file in in_asset['assetmetadata']['inputs']]
+        c_filestamps = [{'stamp':file['stamp'], 'file':os.path.relpath(file['file'], in_asset['buildparams']['asset_directory'])} for file in o_filestamps]
+
+        cache['asset']['inputs'] = c_asset_inputs
+        cache['filestamps'] = c_filestamps
+        with open(in_asset['cache_file'], 'wb') as f:
+            f.write(json.dumps(cache, indent=2))
+        cache['asset']['inputs'] = o_asset_inputs
+        cache['filestamps'] = o_filestamps
 
     #For any inputs returned, fix them to be relative to .asset file
     asset_path = os.path.split(in_asset['assetpath'])[0]
@@ -270,7 +277,6 @@ def main():
                 asset['cmdline'] = config['processors'][asset['assetmetadata']['type']]['proc']
                 asset['process'] = config['processors'][asset['assetmetadata']['type']]
                 asset['buildconfig'] = config['global']
-                asset['buildparams'] = parameters
                 asset['processoptions'] = {}
                 for k, v in asset['process']['defaultprocessoptions'].iteritems():
                     asset['processoptions'][k] = v
@@ -285,6 +291,9 @@ def main():
 
                 asset['cache_directory'] = cache_root
                 asset['asset_directory'] = asset_directory
+                asset['asset_root'] = asset_root
+                asset['buildparams'] = parameters
+                asset['buildparams']['asset_root']  = asset_root
                 asset['cache_file'] = os.path.join(cache_root, uuid_hex_str + '.cache')
                 asset['tmp_directory'] = getAssetTmpPath(asset_uuid, tmp_directory)
                 asset['input_file'] = os.path.join(cache_root, uuid_hex_str + '.in.json')

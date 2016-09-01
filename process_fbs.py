@@ -35,7 +35,7 @@ if __name__ == '__main__':
     includes_string = p.communicate()[0]
 
     includes = [obj_path]
-    includes += [inc[0:-2].strip() for inc in includes_string.split('\n')[1:-1]]
+    includes += [inc[0:-1].strip().strip('\\') for inc in includes_string.split('\n')[1:-1]]
 
     with open(info_path, 'wb') as f:
         f.write(cmdline1+'\n')

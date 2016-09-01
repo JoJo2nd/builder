@@ -3,7 +3,8 @@
         "version": 2
     },
     "prebuild": [
-        "python gen_py_fbs.py -d %(asset_directory)/hart/fbs -o %(working_directory) -f %(working_directory)/flatc"
+        "python gen_py_fbs.py -d %(asset_directory)/hart/fbs -o %(working_directory) -f %(working_directory)/flatc",
+        "python update_prerequisites.py -d %(asset_directory)"
     ],
     "processors": {
         "mesh":{

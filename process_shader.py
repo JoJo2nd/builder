@@ -31,9 +31,11 @@ if __name__ == '__main__':
     SHADERC = os.path.join(asset['buildparams']['working_directory'], 'shadercRelease')
     FLATC = os.path.join(asset['buildparams']['working_directory'], 'flatc')
     tmp_path = os.path.join(asset['tmp_directory'],'shader.data')
+    d_path = os.path.join(asset['tmp_directory'],'shader.data.d')
     cmd_path = os.path.join(asset['tmp_directory'],'cmdline.txt')
     clt_fbs = os.path.join(asset['asset_directory'],'hart/fbs/shader.fbs')
     fbs_js_tmp_path = os.path.join(asset['tmp_directory'],'shader.json')
+    sc_input = formatString(asset['processoptions']['input'], asset['buildparams']);
 
     includes = ""
     for i in asset['processoptions']['sysincludes']:
@@ -45,7 +47,8 @@ if __name__ == '__main__':
 
 
     cmdline = SHADERC
-    cmdline += ' -f ' + asset['assetmetadata']['inputs'][0]
+    cmdline += ' --depends '
+    cmdline += ' -f ' + sc_input
     cmdline += ' -i ' + '"' + includes + '"'
     cmdline += ' -o ' + tmp_path
     if 'type' in asset['processoptions']:
@@ -60,6 +63,11 @@ if __name__ == '__main__':
 
     p = Popen(cmdline)
     p.wait()
+
+    with open(d_path, 'rb') as f:
+        includes_string = f.read()
+    includes = [sc_input]
+    includes += [inc[0:].strip().strip('\\') for inc in includes_string.split('\n')[1:-1]]
 
     s_bytes = []
     with open(tmp_path, 'rb') as f:
@@ -124,6 +132,8 @@ if __name__ == '__main__':
     asset['buildoutput'] = {
         "data": encoded_data_string,
     }
+    #Update the input files
+    asset['assetmetadata']['inputs'] = includes
 
     with open(asset['output_file'], 'wb') as f:
         f.write(json.dumps(asset, indent=2))
