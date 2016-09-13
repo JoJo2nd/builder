@@ -33,18 +33,6 @@
                 "platformext": "--debug"
             }
         },
-        "raw":{
-            "proc": "python process_blob.py",
-            "version": "0.1",
-            "defaultprocessoptions" : {
-            }
-        },
-        "2dvoxelgrid": {
-            "proc": "python process_2dvoxelgrid.py",
-            "version": "0.1",
-            "defaultprocessoptions" : {
-            }  
-        },
         "fbs": {
             "proc": "python process_fbs.py",
             "version": "0.1.0",
