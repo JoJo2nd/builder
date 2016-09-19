@@ -285,6 +285,8 @@ def main():
 
                 asset_root, _ = os.path.split(asset['assetpath'])
                 asset['assetmetadata']['inputs'] = [os.path.realpath(os.path.join(asset_root, inp)) for inp in asset['assetmetadata']['inputs']]
+                if 'input' in asset['processoptions']:
+                    asset['processoptions']['input'] = os.path.realpath(os.path.join(asset_root, asset['processoptions']['input']))
 
                 cache_root = getAssetCachePath(asset_uuid, cache_directory)
                 uuid_hex_str = asset_uuid.hex

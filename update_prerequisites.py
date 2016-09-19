@@ -44,7 +44,26 @@ def fbs_uuid_to_hex_str(u):
     b += '}'
     return b
 
+uuid_properties = [
+    ['player', 'test_uuid'],
+    ['player', 'inner', 'test_uuid'],
+    ['player', 'inner', 'another_test_uuid'],
+]
 
+def parseEntityPrerequisites(entity_props):
+    prerequisites = []
+    for links in uuid_properties:
+        found = True
+        d = entity_props
+        for p in links:
+            if p in d:
+                d = d[p]
+            else:
+                found = False
+        if found:
+            prerequisites += [fbs_uuid_to_hex_str(d)]
+
+    return list(set(prerequisites))#list(set(x)) to make x unique
 
 def main():
     args = parser.parse_args()
@@ -70,6 +89,20 @@ def main():
                 prerequisites = [fbs_uuid_to_hex_str(obj_json['material'])]
                 asset['prerequisites'] = prerequisites
                 update = True
+            elif asset['type'] == 'entity':
+                with open(realpath(join(root, asset['processoptions']['input']))) as f:
+                    obj_json = json.load(f)
+                prerequisites = [fbs_uuid_to_hex_str(obj_json['entityTemplate'])]
+                prerequisites += parseEntityPrerequisites(obj_json['properties'])
+                asset['prerequisites'] = prerequisites
+                update = True
+            elif asset['type'] == 'entitytemplate':
+                with open(realpath(join(root, asset['processoptions']['input']))) as f:
+                    obj_json = json.load(f)
+                prerequisites = parseEntityPrerequisites(obj_json)
+                asset['prerequisites'] = prerequisites
+                update = True
+            # Update the asset meta data
             if update:
                 with open(realpath(join(root, file)), 'wb') as fin:
                     fin.write(json.dumps(asset, indent=2))

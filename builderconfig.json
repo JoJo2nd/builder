@@ -58,6 +58,28 @@
             "defaultprocessoptions" : {
                 "def": "%(asset_directory)/hart/fbs/materialsetup.fbs"
             }  
+        },
+        "entitytemplate": {
+            "proc": "python process_entity_template.py",
+            "version": "0.1",
+            "defaultprocessoptions": {
+                "fbstemplate": "%(asset_directory)/hart/fbs/entitytemplate.fbs",
+                "definitions": {
+                    "player": "%(asset_directory)/game/fbs/player.fbs",
+                    "test": "%(asset_directory)/game/fbs/test.fbs"
+                }
+            }
+        },
+        "entity": {
+            "proc": "python process_entity.py",
+            "version": "0.1",
+            "defaultprocessoptions": {
+                "fbstemplate": "%(asset_directory)/hart/fbs/entity.fbs",
+                "definitions": {
+                    "player": "%(asset_directory)/game/fbs/player.fbs",
+                    "test": "%(asset_directory)/game/fbs/test.fbs"
+                }
+            }
         }
     },
    "postbuild": [

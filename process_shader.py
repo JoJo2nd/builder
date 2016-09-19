@@ -102,33 +102,6 @@ if __name__ == '__main__':
     with open(os.path.splitext(fbs_js_tmp_path)[0]+'.bin', 'rb') as bin_file:
         encoded_data_string = base64.b64encode(bin_file.read())
 
-##    builder = flatbuffers.Builder(0)
-##
-##    hart.render.resource.ShaderResource.ShaderResourceStartMemVector(builder, len(s_bytes))
-##    for b in reversed(s_bytes[:-1]):
-##        builder.PrependUint8(b)
-##    s_mem = builder.EndVector(len(s_bytes))
-##    hart.render.resource.ShaderResource.ShaderResourceStart(builder)
-##    hart.render.resource.ShaderResource.ShaderResourceAddProfile(builder, hart.render.resource.Profile.Profile.Direct3D11)
-##    hart.render.resource.ShaderResource.ShaderResourceAddMem(builder, s_mem)
-##    shaderresource = hart.render.resource.ShaderResource.ShaderResourceEnd(builder)
-##
-##    hart.render.resource.ShaderCollection.ShaderCollectionStartSupportedProfilesVector(builder, 1)
-##    builder.PrependUint16(hart.render.resource.Profile.Profile.Direct3D11)
-##    profiles = builder.EndVector(1)
-##
-##    hart.render.resource.ShaderCollection.ShaderCollectionStartShaderArrayVector(builder, 1)
-##    builder.PrependUOffsetTRelative(shaderresource)
-##    shaders = builder.EndVector(1)
-##
-##    hart.render.resource.ShaderCollection.ShaderCollectionStart(builder)
-##    hart.render.resource.ShaderCollection.ShaderCollectionAddSupportedProfiles(builder, profiles)
-##    hart.render.resource.ShaderCollection.ShaderCollectionAddShaderArray(builder, shaders)
-##    shadercollection = hart.render.resource.ShaderCollection.ShaderCollectionEnd(builder)
-##
-##    builder.Finish(shadercollection)
-##    encoded_data_string = base64.b64encode(builder.Output())
-
     asset['buildoutput'] = {
         "data": encoded_data_string,
     }
