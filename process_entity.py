@@ -45,7 +45,10 @@ def convertJsonFBSToBin(IN_FLATC, in_value, in_fbs_def_path, json_obj_path):
                 break
             s_bytes += [ord(byte_s[0])]
 
-    return includes, s_bytes
+    with open(tmp_path, 'rb') as f:
+        raw_bytes = f.read()
+
+    return includes, s_bytes, raw_bytes
 
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
@@ -74,7 +77,7 @@ if __name__ == '__main__':
         fbs_def_path = formatString(fbs_def_path_map[key], asset['buildparams'])
         comp_obj_path = os.path.join(asset['tmp_directory'], key+'.json')
 
-        ii, s_bytes = convertJsonFBSToBin(FLATC, value, fbs_def_path, comp_obj_path)
+        ii, s_bytes, _ = convertJsonFBSToBin(FLATC, value, fbs_def_path, comp_obj_path)
         includes += ii
 
         js_offsets += [len(js_bytes)]
@@ -90,11 +93,11 @@ if __name__ == '__main__':
 
     log.write(str(final_template)+'\n')
 
-    ii, s_bytes = convertJsonFBSToBin(FLATC, final_template, fbs_templ_def_path, final_tmp_path)
+    ii, s_bytes, r_bytes = convertJsonFBSToBin(FLATC, final_template, fbs_templ_def_path, final_tmp_path)
     includes += ii
 
     asset['buildoutput'] = {
-        "data": base64.b64encode(str(s_bytes)),
+        "data": base64.b64encode(r_bytes),
     }
     #Update the input files
     asset['assetmetadata']['inputs'] = list(set(includes)) # list(set(x)) to make x unique
