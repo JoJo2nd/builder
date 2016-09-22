@@ -80,6 +80,11 @@
                     "test": "%(asset_directory)/game/fbs/test.fbs"
                 }
             }
+        },
+        "sprite": {
+            "proc": "python process_sprite.py",
+            "version": "0.1",
+            "defaultprocessoptions": {}
         }
     },
    "postbuild": [
