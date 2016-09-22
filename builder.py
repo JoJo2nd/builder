@@ -119,7 +119,7 @@ def process_asset(in_asset):
     if do_build:
         #print "Building asset %s (%s)"%(in_asset['assetmetadata']['friendlyname'], in_asset['uuid'])
         with open(in_asset['input_file'], 'wb') as f:
-            f.write(json.dumps(in_asset, indent=2))
+            f.write(json.dumps(in_asset, indent=2, sort_keys=True))
         p = Popen(in_asset['cmdline'].split() + [in_asset['input_file']], stdin=PIPE, stdout=PIPE)
         returncode = p.wait()
         if returncode != 0:
@@ -148,7 +148,7 @@ def process_asset(in_asset):
         cache['asset']['inputs'] = c_asset_inputs
         cache['filestamps'] = c_filestamps
         with open(in_asset['cache_file'], 'wb') as f:
-            f.write(json.dumps(cache, indent=2))
+            f.write(json.dumps(cache, indent=2, sort_keys=True))
         cache['asset']['inputs'] = o_asset_inputs
         cache['filestamps'] = o_filestamps
 
@@ -309,7 +309,7 @@ def main():
 
     #Generate the friendly name listing
     with open(friendlyname_dict_file, 'wb') as f:
-        f.write(json.dumps(FriendlyNames, indent=2))
+        f.write(json.dumps(FriendlyNames, indent=2, sort_keys=True))
 
 
     #
@@ -323,7 +323,7 @@ def main():
             #Update the asset metafile with any info returned by the build process
             if not (res['input']['assetmetadata'] == res['result']['assetmetadata']):
                 with open(res['input']['assetpath'], 'wb') as f:
-                    f.write(json.dumps(res['result']['assetmetadata'], indent=2))
+                    f.write(json.dumps(res['result']['assetmetadata'], indent=2, sort_keys=True))
             if res['deploy']:
                 print "Deploy updated asset %s (%s)"%(res['result']['assetmetadata']['friendlyname'], res['result']['uuid'])
                 with open(res['result']['final_dest'], 'wb') as f:

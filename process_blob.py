@@ -15,5 +15,5 @@ if __name__ == '__main__':
     }
 
     with open(asset['output_file'], 'wb') as f:
-        f.write(json.dumps(asset, indent=2))
+        f.write(json.dumps(asset, indent=2, sort_keys=True))
 

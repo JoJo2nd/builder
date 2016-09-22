@@ -52,7 +52,7 @@ if __name__ == '__main__':
         }
 
         with open(fbs_js_tmp_path, 'wb') as f:
-            f.write(json.dumps(output, indent=2))
+            f.write(json.dumps(output, indent=2, sort_keys=True))
 
         cmdline = [FLATC, '-o', asset['tmp_directory'], '-b', clt_fbs, fbs_js_tmp_path]
         log.write(str(cmdline)+'\n')
@@ -71,5 +71,5 @@ if __name__ == '__main__':
         asset['assetmetadata']['inputs'] = [formatString(asset['processoptions']['input'], asset['buildparams'])]
 
         with open(asset['output_file'], 'wb') as f:
-            f.write(json.dumps(asset, indent=2))
+            f.write(json.dumps(asset, indent=2, sort_keys=True))
 

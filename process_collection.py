@@ -31,7 +31,7 @@ if __name__ == '__main__':
         }]
 
     with open(tmp_path, 'wb') as f:
-        f.write(json.dumps(final_output, indent=2))
+        f.write(json.dumps(final_output, indent=2, sort_keys=True))
 
     cmdline = [FLATC, '-o', asset['tmp_directory'], '-b', clt_fbs, tmp_path]
     with open(cmd_path,'wb') as f:
@@ -48,4 +48,4 @@ if __name__ == '__main__':
     }
 
     with open(asset['output_file'], 'wb') as f:
-        f.write(json.dumps(asset, indent=2))
+        f.write(json.dumps(asset, indent=2, sort_keys=True))

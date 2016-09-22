@@ -105,7 +105,7 @@ def main():
             # Update the asset meta data
             if update:
                 with open(realpath(join(root, file)), 'wb') as fin:
-                    fin.write(json.dumps(asset, indent=2))
+                    fin.write(json.dumps(asset, indent=2, sort_keys=True))
 
 
 if __name__ == '__main__':
