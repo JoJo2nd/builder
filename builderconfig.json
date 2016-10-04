@@ -2,8 +2,13 @@
     "global": {
         "version": 2
     },
-    "prebuild": [
+    "old_prebuild": [
         "python gen_py_fbs.py -d %(asset_directory)/hart/fbs -o %(working_directory) -f %(working_directory)/flatc",
+        "python update_prerequisites.py -d %(asset_directory)"
+    ],
+    "prebuild": [
+        "python gen_py_fbs.py -d %(asset_directory)/hart/fbs -o %(working_directory)/fbs -f %(working_directory)/flatc",
+        "python gen_py_fbs.py -d %(asset_directory)/game/fbs -o %(working_directory)/fbs -f %(working_directory)/flatc",
         "python update_prerequisites.py -d %(asset_directory)"
     ],
     "processors": {
@@ -83,6 +88,16 @@
         },
         "sprite": {
             "proc": "python process_sprite.py",
+            "version": "0.1",
+            "defaultprocessoptions": {}
+        },
+        "tileset": {
+            "proc": "python process_tileset.py",
+            "version": "0.1",
+            "defaultprocessoptions": {}
+        },
+        "level": {
+            "proc": "python process_level.py",
             "version": "0.1",
             "defaultprocessoptions": {}
         }

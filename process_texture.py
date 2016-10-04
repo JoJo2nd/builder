@@ -3,11 +3,7 @@ import json
 import os.path
 import base64
 from subprocess import Popen, PIPE
-
-def formatString(s, parameters):
-    for k, p in parameters.iteritems():
-        s = s.replace("%%(%s)"%(k), p)
-    return s
+from gamecommon.utils import convertJsonFBSToBin, formatString, getAssetUUID, getAssetUUIDFromString
 
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
@@ -20,12 +16,12 @@ if __name__ == '__main__':
     fbs_js_tmp_path = os.path.join(asset['tmp_directory'],'texture.json')
 
     with open(cmd_path, 'wb') as log:
-        cmdline = TEXTUREC
-        cmdline += ' -f ' + formatString(asset['processoptions']['input'], asset['buildparams'])
-        cmdline += ' -o ' + tmp_path
-        cmdline += ' -t ' + asset['processoptions']['format']
+        cmdline = [TEXTUREC]
+        cmdline += ['-f'] + [formatString(asset['processoptions']['input'], asset['buildparams'])]
+        cmdline += ['-o'] + [tmp_path]
+        cmdline += ['-t'] + [asset['processoptions']['format']]
         if 'generatemips' in asset['processoptions'] and asset['processoptions']['generatemips'] == True:
-            cmdline += ' -m '
+            cmdline += ['-m']
         
         log.write(str(cmdline)+'\n')
 

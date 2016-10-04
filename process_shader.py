@@ -5,24 +5,11 @@ import base64
 from subprocess import Popen, PIPE
 import argparse
 import flatbuffers
-import hart.render.resource.Profile
-import hart.render.resource.ShaderResource
-import hart.render.resource.ShaderCollection
+import fbs.hart.render.resource.Profile
+import fbs.hart.render.resource.ShaderResource
+import fbs.hart.render.resource.ShaderCollection
 
-def formatString(s, parameters):
-    for k, p in parameters.iteritems():
-        s = s.replace("%%(%s)"%(k), p)
-    return s
-
-def bytes_from_file(filename, chunksize=8192):
-    with open(filename, "rb") as f:
-        while True:
-            b = f.read(1)
-            if b != "":
-                #for b in chunk:
-                yield b
-            else:
-                break
+from gamecommon.utils import convertJsonFBSToBin, formatString, getAssetUUID, getAssetUUIDFromString, bytes_from_file
 
 
 if __name__ == '__main__':
