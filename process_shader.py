@@ -5,9 +5,6 @@ import base64
 from subprocess import Popen, PIPE
 import argparse
 import flatbuffers
-import fbs.hart.render.resource.Profile
-import fbs.hart.render.resource.ShaderResource
-import fbs.hart.render.resource.ShaderCollection
 
 from gamecommon.utils import convertJsonFBSToBin, formatString, getAssetUUID, getAssetUUIDFromString, bytes_from_file
 
