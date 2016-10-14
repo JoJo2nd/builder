@@ -81,6 +81,19 @@ if __name__ == '__main__':
             }]
             #TODO: build the frame array (with UVs etc)
 
+        #add any procedural frames
+        if 'procframes' in sprite_data:
+            for pf in sprite_data['procframes']:
+                src_f = frames_data_array[pf['sourceid']]
+                dst_f = {'page': src_f['page'] }
+                flipu = pf['flipu'] if 'flipu' in pf else False
+                flipv = pf['flipv'] if 'flipv' in pf else False
+                dst_f['u1'] = src_f['u2'] if flipu else src_f['u1']
+                dst_f['u2'] = src_f['u1'] if flipu else src_f['u2']
+                dst_f['v1'] = src_f['v2'] if flipv else src_f['v1']
+                dst_f['v2'] = src_f['v1'] if flipv else src_f['v2']
+                frames_data_array += [dst_f]
+
         #process each page
         page = 0
         pages = []
