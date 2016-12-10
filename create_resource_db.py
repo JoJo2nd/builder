@@ -32,7 +32,8 @@ if __name__ == '__main__':
         l+=1
 
     for k, v in resource_json.iteritems():
-        final_output['assetInfos'] += [{'friendlyName': k, 'filepath': v['filepath'][0], 'filesize': os.path.getsize(os.path.join(os.path.split(sys.argv[1])[0], v['filepath'][0])), 'prerequisites': [asset_index[x] for x in v['prerequisites']]}]
+        full_filepath = os.path.join(os.path.split(sys.argv[1])[0], v['filepath'][0])
+        final_output['assetInfos'] += [{'friendlyName': k, 'filepath': '/data/'+v['filepath'][0], 'filesize': os.path.getsize(full_filepath), 'mtime': long(os.path.getmtime(full_filepath)), 'prerequisites': [asset_index[x] for x in v['prerequisites']]}]
 
     with open(sys.argv[1]+'.fbs.src', 'wb') as f:
         f.write(json.dumps(final_output, indent=2, sort_keys=True))
