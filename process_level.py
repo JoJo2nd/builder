@@ -154,10 +154,10 @@ if __name__ == '__main__':
                         log.write(str(obj)+'\n')
                         if '@width' in obj and '@height' in obj:
                             #this is an AABB
-                            collision_prim_json['aabb_min'] = { 'x':x_origin, 'y':y_origin }
                             collision_prim_json['aabb_max'] = { 'x':x_origin+int(obj['@width']), 'y':y_origin+int(obj['@height']) }
+                            collision_prim_json['aabb_min'] = { 'x':x_origin, 'y':y_origin }
                             log.write('collision aabb found (%s, %s)'%(str(collision_prim_json['aabb_min']), str(collision_prim_json['aabb_max'])))
-                        else:
+                        elif 'polygon' in obj:
                             log.write('collision poly points %s'%(str(obj['polygon']['@points'].split())))
                             collision_prim_json['points'] = []
                             for p in obj['polygon']['@points'].split():
