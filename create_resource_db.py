@@ -33,6 +33,9 @@ if __name__ == '__main__':
 
     for k, v in resource_json.iteritems():
         full_filepath = os.path.join(os.path.split(sys.argv[1])[0], v['filepath'][0])
+        for x in v['prerequisites']:
+            if not x in asset_index:
+                print "Error: Asset with ID %s is referenced as a prerequisite of %s {%s}. This asset cannot be loaded correctly at runtime."%(x, v['filepath'][0], k)
         final_output['assetInfos'] += [{'friendlyName': k, 'filepath': '/data/'+v['filepath'][0], 'filesize': os.path.getsize(full_filepath), 'mtime': long(os.path.getmtime(full_filepath)), 'prerequisites': [asset_index[x] for x in v['prerequisites']]}]
 
     with open(sys.argv[1]+'.fbs.src', 'wb') as f:

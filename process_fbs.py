@@ -4,7 +4,7 @@ import os.path
 import base64
 import re
 from subprocess import Popen, PIPE
-from gamecommon.utils import convertJsonFBSToBin, formatString, getAssetUUID, getAssetUUIDFromString, buildStrFromUUIDFromNumbers
+from gamecommon.utils import convertJsonFBSToBin, formatString, getAssetUUID, getAssetUUIDFromString, buildStrFromUUIDFromNumbers, scanJSONForAssetUUIDs
 
 log = None
 
@@ -26,16 +26,7 @@ if __name__ == '__main__':
     cmdline += ' -b ' + fbs_def_path
     cmdline += ' ' + obj_path
 
-    prerequisites = []
-    with open(obj_path, 'rb') as f:
-        json_str = f.read()
-        for r in re.finditer('\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)', json_str):
-            uuidstuff = {r.group(1):r.group(2), r.group(3):r.group(4), r.group(5):r.group(6), r.group(7):r.group(8)}
-            log.write("found UUID %s,%s,%s,%s\n"%(uuidstuff['highword1'], uuidstuff['highword2'], uuidstuff['highword3'], uuidstuff['lowword']))
-            log.write("uuid convert string %x%x%x%x\n"%(int(uuidstuff['highword1']), int(uuidstuff['highword2']), int(uuidstuff['highword3']), int(uuidstuff['lowword'])))
-            uuid_str = buildStrFromUUIDFromNumbers(int(uuidstuff['highword1']), int(uuidstuff['highword2']), int(uuidstuff['highword3']), int(uuidstuff['lowword']))
-            prerequisites += [uuid_str]
-    asset['assetmetadata']['prerequisites'] = prerequisites
+    prerequisites = scanJSONForAssetUUIDs(obj_path)
 
     p = Popen(cmdline)
     p.wait()
@@ -62,7 +53,8 @@ if __name__ == '__main__':
         "data": encoded_data_string,
     }
     #Update the input files
-    asset['assetmetadata']['inputs'] = includes
+    asset['assetmetadata']['inputs'] = list(set(includes))
+    asset['assetmetadata']['prerequisites'] = list(set(prerequisites))
 
     with open(asset['output_file'], 'wb') as f:
         f.write(json.dumps(asset, indent=2, sort_keys=True))

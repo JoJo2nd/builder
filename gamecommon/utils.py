@@ -6,7 +6,12 @@ import sys
 import json
 import os.path
 import uuid
+import struct
+import re
 from subprocess import Popen, PIPE
+
+def swap32(i):
+    return struct.unpack("<I", struct.pack(">I", i))[0]
 
 def formatString(s, parameters):
     for k, p in parameters.iteritems():
@@ -78,7 +83,7 @@ def getAssetUUIDFromString(asset_uuid_str):
     }
 
 def buildStrFromUUIDFromNumbers(hw1, hw2, hw3, lw):
-    return str(uuid.UUID("%08x%08x%08x%08x"%(lw, hw1, hw2, hw3)))
+    return str(uuid.UUID("%08x%08x%08x%08x"%(swap32(lw), swap32(hw1), swap32(hw2), swap32(hw3))))
 
 def bytes_from_file(filename, chunksize=8192):
     with open(filename, "rb") as f:
@@ -89,3 +94,13 @@ def bytes_from_file(filename, chunksize=8192):
                 yield b
             else:
                 break
+
+def scanJSONForAssetUUIDs(json_path):
+    prerequisites = []
+    with open(json_path, 'rb') as f:
+        json_str = f.read()
+        for r in re.finditer('\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)', json_str):
+            uuidstuff = {r.group(1):r.group(2), r.group(3):r.group(4), r.group(5):r.group(6), r.group(7):r.group(8)}
+            uuid_str = buildStrFromUUIDFromNumbers(int(uuidstuff['highword1']), int(uuidstuff['highword2']), int(uuidstuff['highword3']), int(uuidstuff['lowword']))
+            prerequisites += [uuid_str]
+    return list(set(prerequisites))

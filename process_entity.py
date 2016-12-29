@@ -4,7 +4,7 @@ import sys
 import json
 import os.path
 import base64
-from gamecommon.utils import convertJsonFBSToBin, formatString
+from gamecommon.utils import convertJsonFBSToBin, formatString, scanJSONForAssetUUIDs
 from subprocess import Popen, PIPE
 
 log = None
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     template_uuid = entity['entityTemplate']
     entity_def = entity['properties']
 
-    includes = []
+    includes = [obj_path]
     js_offsets = []
     js_bytes = []
     for key, value in entity_def.iteritems():
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     }
     #Update the input files
     asset['assetmetadata']['inputs'] = list(set(includes)) # list(set(x)) to make x unique
+    asset['assetmetadata']['prerequisites'] = scanJSONForAssetUUIDs(obj_path)
 
     with open(asset['output_file'], 'wb') as f:
         f.write(json.dumps(asset, indent=2, sort_keys=True))
