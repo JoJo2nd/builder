@@ -2,8 +2,11 @@ import sys
 import json
 import os.path
 import base64
+import re
 from subprocess import Popen, PIPE
-from gamecommon.utils import convertJsonFBSToBin, formatString, getAssetUUID, getAssetUUIDFromString
+from gamecommon.utils import convertJsonFBSToBin, formatString, getAssetUUID, getAssetUUIDFromString, buildStrFromUUIDFromNumbers
+
+log = None
 
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
@@ -16,10 +19,23 @@ if __name__ == '__main__':
     obj_path = os.path.realpath(os.path.join(asset_base, asset['processoptions']['input']))
     tmp_path = os.path.join(asset['tmp_directory'], os.path.splitext(os.path.split(obj_path)[1])[0]+'.bin')
 
+    log = open(os.path.join(asset['tmp_directory'], 'log.txt'), 'wb')
+
     cmdline = FLATC
     cmdline += ' -o ' + tmp_dir
     cmdline += ' -b ' + fbs_def_path
     cmdline += ' ' + obj_path
+
+    prerequisites = []
+    with open(obj_path, 'rb') as f:
+        json_str = f.read()
+        for r in re.finditer('\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)\s*\,\s*\"(highword\d|lowword)\"\s*\:\s*(\d+)', json_str):
+            uuidstuff = {r.group(1):r.group(2), r.group(3):r.group(4), r.group(5):r.group(6), r.group(7):r.group(8)}
+            log.write("found UUID %s,%s,%s,%s\n"%(uuidstuff['highword1'], uuidstuff['highword2'], uuidstuff['highword3'], uuidstuff['lowword']))
+            log.write("uuid convert string %x%x%x%x\n"%(int(uuidstuff['highword1']), int(uuidstuff['highword2']), int(uuidstuff['highword3']), int(uuidstuff['lowword'])))
+            uuid_str = buildStrFromUUIDFromNumbers(int(uuidstuff['highword1']), int(uuidstuff['highword2']), int(uuidstuff['highword3']), int(uuidstuff['lowword']))
+            prerequisites += [uuid_str]
+    asset['assetmetadata']['prerequisites'] = prerequisites
 
     p = Popen(cmdline)
     p.wait()

@@ -77,6 +77,9 @@ def getAssetUUIDFromString(asset_uuid_str):
         'lowword'  : ((b[ 3]<<24) | (b[ 2]<<16) | (b[ 1]<<8) | (b[ 0]))
     }
 
+def buildStrFromUUIDFromNumbers(hw1, hw2, hw3, lw):
+    return str(uuid.UUID("%08x%08x%08x%08x"%(lw, hw1, hw2, hw3)))
+
 def bytes_from_file(filename, chunksize=8192):
     with open(filename, "rb") as f:
         while True:
