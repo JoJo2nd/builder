@@ -52,7 +52,8 @@ if __name__ == '__main__':
         'tilesets': [],
         'layers': [],
         'collisionprims' : [],
-        'entities' : []
+        'entities' : [],
+        'playerStarts': []
     }
 
     for key, value in level['map'].iteritems():
@@ -164,9 +165,11 @@ if __name__ == '__main__':
                                 collision_prim_json['points'] += [{ 'x': int(p.split(',')[0])+x_origin, 'y':int(p.split(',')[1])+y_origin }]
                         level_json['collisionprims'] += [collision_prim_json]
                 else:
-                    #every other layer, only for entities currently
+                    #every other layer, for entities and any special case objects
                     for obj in objects:
-                        if '@type' in obj and obj['@type'] == 'Entity':
+                        if '@type' in obj and obj['@type'] == 'PlayerSpawn':
+                            level_json['playerStarts'] += [{'position':{'x': int(obj['@x']), 'y': int(obj['@y'])}}]
+                        elif '@type' in obj and obj['@type'] == 'Entity':
                             props = obj['properties']['property']
                             if not isinstance(props, list):
                                 props = [props]
@@ -176,6 +179,10 @@ if __name__ == '__main__':
                                     level_json['entities'] += [{'levelid':int(obj['@id']), 'assetuuid':getAssetUUIDFromString(p['@value'])}]
 
     #log.write(json.dumps(level_json, indent=2, sort_keys=True))
+
+    if len(level_json['playerStarts']) == 0:
+        log.write('Unable to find "PlayerSpawn" object in level.');
+        raise ValueError('Unable to find "PlayerSpawn" object in level.')
 
     includes, js_byes, raw_bytes = convertJsonFBSToBin(FLATC, level_json, fbs_def_path, final_fbs_path, asset['tmp_directory'], log)
     asset['buildoutput'] = {
