@@ -56,6 +56,11 @@ if __name__ == '__main__':
         'playerStarts': []
     }
 
+    level_width = int(level['map']['@width'])*int(level['map']['@tilewidth'])
+    level_height = int(level['map']['@height'])*int(level['map']['@tileheight'])
+    level_width_m1 = level_width-1
+    level_height_m1 = level_height-1
+
     for key, value in level['map'].iteritems():
         log.write('iter map key:%s value:%s\n'%(key, value))
         if key == 'tileset':
@@ -129,7 +134,7 @@ if __name__ == '__main__':
                     if l_key == 'data':
                         #log.write(str(l_value)+'\n')
                         for line in l_value['#text'].splitlines():
-                            tiles += [int(v) for v in line.split(',') if len(v) > 0]
+                            tiles = [int(v) for v in line.split(',') if len(v) > 0] + tiles
                             #for v in line.split(','):
                             #    log.write(v+',')
                             #    tiles += [int(v)]
@@ -148,27 +153,27 @@ if __name__ == '__main__':
                 if objectgroup['@name'] == 'collision':
                     for obj in objects:
                         collision_prim_json = {
-                            'x': int(obj['@x']), 'y': int(obj['@y']),
+                            'x': int(obj['@x']), 'y': level_height-int(obj['@y']),
                         }
                         x_origin=int(obj['@x'])
                         y_origin=int(obj['@y'])
                         log.write(str(obj)+'\n')
                         if '@width' in obj and '@height' in obj:
                             #this is an AABB
-                            collision_prim_json['aabb_max'] = { 'x':x_origin+int(obj['@width']), 'y':y_origin+int(obj['@height']) }
-                            collision_prim_json['aabb_min'] = { 'x':x_origin, 'y':y_origin }
+                            collision_prim_json['aabb_max'] = { 'x':x_origin+int(obj['@width']), 'y':level_height-(int(obj['@height'])+y_origin) }
+                            collision_prim_json['aabb_min'] = { 'x':x_origin, 'y':level_height-y_origin }
                             log.write('collision aabb found (%s, %s)'%(str(collision_prim_json['aabb_min']), str(collision_prim_json['aabb_max'])))
                         elif 'polygon' in obj:
                             log.write('collision poly points %s'%(str(obj['polygon']['@points'].split())))
                             collision_prim_json['points'] = []
                             for p in obj['polygon']['@points'].split():
-                                collision_prim_json['points'] += [{ 'x': int(p.split(',')[0])+x_origin, 'y':int(p.split(',')[1])+y_origin }]
+                                collision_prim_json['points'] += [{ 'x': int(p.split(',')[0])+x_origin, 'y':level_height-(int(p.split(',')[1])+y_origin) }]
                         level_json['collisionprims'] += [collision_prim_json]
                 else:
                     #every other layer, for entities and any special case objects
                     for obj in objects:
                         if '@type' in obj and obj['@type'] == 'PlayerSpawn':
-                            level_json['playerStarts'] += [{'position':{'x': int(obj['@x']), 'y': int(obj['@y'])}}]
+                            level_json['playerStarts'] += [{'position':{'x': int(obj['@x']), 'y': level_height-(int(obj['@y'])+int(obj['@height']))}}]
                         elif '@type' in obj and obj['@type'] == 'Entity':
                             props = obj['properties']['property']
                             if not isinstance(props, list):
