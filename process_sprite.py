@@ -6,7 +6,33 @@ from os.path import join, realpath, split, splitext
 import zipfile
 import base64
 from PIL import Image
+from gamecommon.utils import convertJsonFBSToBin, formatString, scanJSONStringForAssetUUIDs
 from subprocess import Popen, PIPE
+
+# .anim format
+# # Comments!!
+# # Like .obj format, prefix a line with the type of data 
+# # AnimationName filepath 
+# A Idle idle_.csv
+# # Curve type, Linear or Catmull-Rom spline
+# C Linear
+# # list of frames x , y , end time as % of total anim ;
+# # In the maths this can be a 3D curve where z is position along the 2D curve?
+# P 0, 0, 0;
+# P 16, 0, 100;
+# # Walk cycle
+# A WalkLeft walk_.csv
+# # 
+# C Linear
+# #
+# P 0, 0, 0;
+# P -16, 0, 100;
+
+# .csv format
+# "Name","Transparent Color","Transparent Color(Hex)","Delay(1/60)","File Name","Width","Height"
+# "Frame1","16777215","00FFFFFF","6","walk_0000.png","32","48"
+# ...and repeat
+#
 
 log = None
 
@@ -25,139 +51,117 @@ if __name__ == '__main__':
     fbs_def_path = join(asset['asset_directory'],'game/fbs/sprite.fbs')
     final_fbs_path = join(asset['tmp_directory'], 'sprite.json')
     final_atlas_path = join(asset['tmp_directory'], 'fullatlas_')
-    sprite_zip_path = asset['processoptions']['input']
-    sprite_folder = split(sprite_zip_path)[0]
-    sprite_data_path = join(sprite_folder, 'meta.json')
+    output_ktx = join(asset['tmp_directory'], 'tmp.ktx')
+    sprite_path = asset['processoptions']['input']
+    sprite_folder = split(sprite_path)[0]
+    found_inputs = []
 
     log = open(join(asset['tmp_directory'], 'log.txt'), 'wb')
 
-    log.write("opening zipfile %s"%(sprite_zip_path))
-    with zipfile.ZipFile(sprite_zip_path) as zf:
-        log.write("...open\n")
-        log.write('loading sprite metadata %s\n'%(sprite_data_path))
-        with open(sprite_data_path, 'rb') as f:
-            sprite_data = json.loads(f.read())
-        frames = [i for i in zf.infolist() if i.filename.startswith('frame_')]
-        frames_data = {}
-        for f in frames:
-            log.write("extracting frame %s to %s\n"%(f.filename, frame_tmp_dir))
-            zf.extract(f, frame_tmp_dir)
-            frame_number = int(splitext(f.filename)[0].lstrip('frame_'))
-            log.write('adding frame %d\n'%(frame_number))
-            frames_data[frame_number] = Image.open(join(frame_tmp_dir, f.filename))
+    total_control_points = 0
+    total_anims = 0
+    total_frames = 0
+    asset_json = {
+        'pages':[],
+        'anims':[],
+    }
+    anim_json = None
 
-        cell_w = frames_data[0].size[0]
-        cell_h = frames_data[0].size[1]
-        log.write(str(sprite_data))
-        padding = sprite_data['layout']['padding'];
-        padded_cell_w = cell_w + padding
-        padded_cell_h = cell_h + padding
-        cols = sprite_data['layout']['cellsX']
-        rows = sprite_data['layout']['cellsY']
-        log.write("\ncell size (%d, %d)\n"%(padded_cell_w, padded_cell_h))
+    log.write("opening .sprite file %s\n"%(sprite_path))
+    found_inputs += [sprite_path]
+    with open(sprite_path, "rb") as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line[0] == '#':
+                continue
+            if line[0] == 'A':
+                if not anim_json == None:
+                    asset_json['anims'] += [anim_json]
+                csv_path = join(sprite_folder, line.split()[2])
+                anim_json = {
+                    'animType':line.split()[1],
+                    'frames':[],
+                    'controlPoints':[]
+                }
+                log.write("opening .csv file %s\n"%(csv_path))
+                found_inputs += [csv_path]
+                with open(csv_path, 'rb') as csv_f:
+                    for cline in csv_f.readlines()[1:]:
+                        # "Name","Transparent Color","Transparent Color(Hex)","Delay(1/60)","File Name","Width","Height"
+                        # "Frame1","16777215","00FFFFFF","6","walk_0000.png","32","48"
+                        log.write(str(cline.split())+'\n')
+                        params = cline.split(',')
+                        frame_js = {}
+                        frame_js['length'] = int(params[3].strip('"'))
+                        frame_js['page'] = total_frames
+                        anim_json['frames'] += [frame_js]
+                        total_frames += 1
+                        tex_path = join(sprite_folder, params[4].strip('"'))
+                        found_inputs += [tex_path]
+                        cmdline = TEXTUREC
+                        cmdline += ' -f ' + tex_path
+                        cmdline += ' -o ' + output_ktx
+                        cmdline += ' -t ' + 'RGBA8'
+                        log.write(str(cmdline)+'\n')
+            
+                        p = Popen(cmdline, stdout=PIPE, stderr=PIPE)
+                        stdout, stderr = p.communicate()
+            
+                        log.write(stdout+'\n')
+                        log.write(stderr+'\n')    
+            
+                        s_bytes = []
+                        with open(output_ktx, 'rb') as f:
+                            while 1:
+                                byte_s = f.read(1)
+                                if not byte_s:
+                                    break
+                                s_bytes += [ord(byte_s[0])]
+            
+                        js_bytes = []
+                        for b in s_bytes:
+                            js_bytes += [b]
+                        asset_json['pages'] += [{
+                            'data':js_bytes
+                        }]
+            elif line[0] == 'C':
+                pass
+            elif line[0] == 'P':
+                params = line.split()
+                anim_json['controlPoints'] += [{
+                    'x': float(params[1]), 
+                    'y': float(params[2]),
+                    'z': float(params[3])
+                }]
+                total_control_points += 1
 
-        # TODO: align to 4?
-        final_width = padded_cell_w*cols
-        final_height = padded_cell_h*rows
-        final_cell_count = (cols*rows)
-        final_page_count = (len(frames_data)+(final_cell_count-1))/final_cell_count
-        final_im = {}
-        log.write('page count (%d /%d*%d) %d\n'%(len(frames_data), rows, cols, final_page_count))
-        for f in range(0, final_page_count):
-            final_im[f] = Image.new(frames_data[0].mode, (final_width, final_height))
+    if not anim_json == None:
+        asset_json['anims'] += [anim_json]
 
-        frames_data_array = []
-        current_page = 0
-        for f in range(0, len(frames_data)):
-            current_page = f / final_cell_count
-            pf = f % final_cell_count
-            y = pf / cols
-            x = pf % cols
-            final_im[current_page].paste(frames_data[f], (x*padded_cell_w, y*padded_cell_h))
-            frames_data_array += [{
-                'u1': ((x*padded_cell_w)+padding)*(1.0/final_width), 'v1': ((y*padded_cell_h)+padding)*(1.0/final_height),
-                'u2': (((x+1)*padded_cell_w)-padding)*(1.0/final_width), 'v2': (((y+1)*padded_cell_h)-padding)*(1.0/final_height),
-                'page':current_page
-            }]
-            #TODO: build the frame array (with UVs etc)
+    asset_json['totalControlPoints'] = total_control_points
+    asset_json['totalFrames'] = total_frames
 
-        #add any procedural frames
-        if 'procframes' in sprite_data:
-            for pf in sprite_data['procframes']:
-                src_f = frames_data_array[pf['sourceid']]
-                dst_f = {'page': src_f['page'] }
-                flipu = pf['flipu'] if 'flipu' in pf else False
-                flipv = pf['flipv'] if 'flipv' in pf else False
-                dst_f['u1'] = src_f['u2'] if flipu else src_f['u1']
-                dst_f['u2'] = src_f['u1'] if flipu else src_f['u2']
-                dst_f['v1'] = src_f['v2'] if flipv else src_f['v1']
-                dst_f['v2'] = src_f['v1'] if flipv else src_f['v2']
-                frames_data_array += [dst_f]
+#    with open(final_fbs_path, 'wb') as f:
+#        f.write(json.dumps(asset_json, indent=2, sort_keys=True))
+#
+#    cmdline = [FLATC, '-o', asset['tmp_directory'], '-b', fbs_def_path, final_fbs_path]
+#    log.write(str(cmdline)+'\n')
+#    p = Popen(cmdline, stdout=PIPE, stderr=PIPE)
+#    stdout, stderr = p.communicate()
+#    log.write(stdout+'\n')
+#    log.write(stderr+'\n')
+#
+#    with open(splitext(final_fbs_path)[0]+'.bin', 'rb') as bin_file:
+#        encoded_data_string = base64.b64encode(bin_file.read())
+    final_tmp_path = join(asset['tmp_directory'], 'final_template.json')
+    ii, s_bytes, r_bytes = convertJsonFBSToBin(FLATC, asset_json, fbs_def_path, final_tmp_path, asset['tmp_directory'], log)
 
-        #process each page
-        page = 0
-        pages = []
-        for f in final_im:
-            input_png = final_atlas_path+str(page)+'.png'
-            output_ktx = final_atlas_path+str(page)+'.ktx'
-            final_im[f].save(input_png)
-            page+=1
-            cmdline = TEXTUREC
-            cmdline += ' -f ' + input_png
-            cmdline += ' -o ' + output_ktx
-            cmdline += ' -t ' + 'RGBA8'
-
-            log.write(str(cmdline)+'\n')
-
-            p = Popen(cmdline, stdout=PIPE, stderr=PIPE)
-            stdout, stderr = p.communicate()
-
-            log.write(stdout+'\n')
-            log.write(stderr+'\n')    
-
-            s_bytes = []
-            with open(output_ktx, 'rb') as f:
-                while 1:
-                    byte_s = f.read(1)
-                    if not byte_s:
-                        break
-                    s_bytes += [ord(byte_s[0])]
-
-            js_bytes = []
-            for b in s_bytes:
-                js_bytes += [b]
-
-            pages += [{
-                'cellWidth': cell_w, 'cellHeight': cell_h, 'xCells': cols, 'yCells': rows,
-                'data': js_bytes
-            }]
-
-
-        asset_json = {
-            'pages': pages,
-            'frames': frames_data_array,
-            'anims': sprite_data['animations']
-        }
-        with open(final_fbs_path, 'wb') as f:
-            f.write(json.dumps(asset_json, indent=2, sort_keys=True))
-
-        cmdline = [FLATC, '-o', asset['tmp_directory'], '-b', fbs_def_path, final_fbs_path]
-        log.write(str(cmdline)+'\n')
-        p = Popen(cmdline, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate()
-        log.write(stdout+'\n')
-        log.write(stderr+'\n')
-
-        with open(splitext(final_fbs_path)[0]+'.bin', 'rb') as bin_file:
-            encoded_data_string = base64.b64encode(bin_file.read())
-
-        log.write('read outputted fbs binary')
-        asset['buildoutput'] = {
-            "data": encoded_data_string,
-        }
-        asset['assetmetadata']['inputs'] = [
-            sprite_data_path, sprite_zip_path
-        ]
+    log.write('read outputted fbs binary')
+    asset['buildoutput'] = {
+        "data": base64.b64encode(r_bytes),
+    }
+    asset['assetmetadata']['inputs'] = found_inputs+ii
 
     with open(asset['output_file'], 'wb') as f:
         f.write(json.dumps(asset, indent=2, sort_keys=True))
+
