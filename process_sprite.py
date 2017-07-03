@@ -90,10 +90,12 @@ if __name__ == '__main__':
                         # "Name","Transparent Color","Transparent Color(Hex)","Delay(1/60)","File Name","Width","Height"
                         # "Frame1","16777215","00FFFFFF","6","walk_0000.png","32","48"
                         log.write(str(cline.split())+'\n')
-                        params = cline.split(',')
+                        params = cline.strip().split(',')
                         frame_js = {}
                         frame_js['length'] = int(params[3].strip('"'))
                         frame_js['page'] = total_frames
+                        frame_js['width'] = int(params[5].strip('"'))
+                        frame_js['height'] = int(params[6].strip('"'))
                         anim_json['frames'] += [frame_js]
                         total_frames += 1
                         tex_path = join(sprite_folder, params[4].strip('"'))
