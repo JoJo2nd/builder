@@ -41,6 +41,20 @@ def formatString(s, parameters):
         s = s.replace("%%(%s)"%(k), p)
     return s
 
+def getImageBBox(image):
+    l = image.width
+    r = 0
+    t = image.height
+    b = 0
+    for y in range(image.height):
+        for x in range(image.width):
+            if image.getpixel((x,y))[3] > 0:
+                l = min(l, x)
+                r = max(r, x)
+                t = min(t, y)
+                b = max(b, y)
+    return (l, t, r, b)
+
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
         asset = json.load(fin)
@@ -61,11 +75,14 @@ if __name__ == '__main__':
     total_control_points = 0
     total_anims = 0
     total_frames = 0
+    total_pages = 0
     asset_json = {
         'pages':[],
         'anims':[],
     }
     anim_json = None
+    frame_id = {}
+    frame_bbox = {}
 
     log.write("opening .sprite file %s\n"%(sprite_path))
     found_inputs += [sprite_path]
@@ -78,6 +95,10 @@ if __name__ == '__main__':
                 if not anim_json == None:
                     asset_json['anims'] += [anim_json]
                 csv_path = join(sprite_folder, line.split()[2])
+                flipx = False
+                if 'flipx' in line.split():
+                    flipx = True
+                cp_anim_precent = 0;
                 anim_json = {
                     'animType':line.split()[1],
                     'frames':[],
@@ -91,41 +112,59 @@ if __name__ == '__main__':
                         # "Frame1","16777215","00FFFFFF","6","walk_0000.png","32","48"
                         log.write(str(cline.split())+'\n')
                         params = cline.strip().split(',')
+                        tex_path = join(sprite_folder, params[4].strip('"'))
                         frame_js = {}
                         frame_js['length'] = int(params[3].strip('"'))
-                        frame_js['page'] = total_frames
+                        frame_js['flipx'] = flipx
+                        if flipx:
+                            frame_js['page'] = frame_id[tex_path]
+                            frame_js['left'] = frame_bbox[tex_path][0]
+                            frame_js['top'] = frame_bbox[tex_path][1]
+                            frame_js['right'] = frame_bbox[tex_path][2]
+                            frame_js['bottom'] = frame_bbox[tex_path][3]
+                        else:
+                            frame_js['page'] = total_pages
+                            frame_id[tex_path] = total_pages
+                            with Image.open(tex_path) as image:
+                                bbox = getImageBBox(image)#image.getbbox()
+                                frame_bbox[tex_path] = bbox
+                                frame_js['left'] = bbox[0]
+                                frame_js['top'] = bbox[1]
+                                frame_js['right'] = bbox[2]
+                                frame_js['bottom'] = bbox[3]
+                            total_pages += 1
                         frame_js['width'] = int(params[5].strip('"'))
                         frame_js['height'] = int(params[6].strip('"'))
                         anim_json['frames'] += [frame_js]
                         total_frames += 1
-                        tex_path = join(sprite_folder, params[4].strip('"'))
                         found_inputs += [tex_path]
-                        cmdline = TEXTUREC
-                        cmdline += ' -f ' + tex_path
-                        cmdline += ' -o ' + output_ktx
-                        cmdline += ' -t ' + 'RGBA8'
-                        log.write(str(cmdline)+'\n')
+                        if not flipx:
+                            cmdline = TEXTUREC
+                            cmdline += ' -f ' + tex_path
+                            cmdline += ' -o ' + output_ktx
+                            cmdline += ' -t ' + 'RGBA8'
+                            log.write(str(cmdline)+'\n')
+                
+                            p = Popen(cmdline, stdout=PIPE, stderr=PIPE)
+                            stdout, stderr = p.communicate()
+                
+                            log.write(stdout+'\n')
+                            log.write(stderr+'\n')    
             
-                        p = Popen(cmdline, stdout=PIPE, stderr=PIPE)
-                        stdout, stderr = p.communicate()
-            
-                        log.write(stdout+'\n')
-                        log.write(stderr+'\n')    
-            
-                        s_bytes = []
-                        with open(output_ktx, 'rb') as f:
-                            while 1:
-                                byte_s = f.read(1)
-                                if not byte_s:
-                                    break
-                                s_bytes += [ord(byte_s[0])]
-            
-                        js_bytes = []
-                        for b in s_bytes:
-                            js_bytes += [b]
-                        asset_json['pages'] += [{
-                            'data':js_bytes
-                        }]
+                            s_bytes = []
+                            with open(output_ktx, 'rb') as f:
+                                while 1:
+                                    byte_s = f.read(1)
+                                    if not byte_s:
+                                        break
+                                    s_bytes += [ord(byte_s[0])]
+                
+                            js_bytes = []
+                            for b in s_bytes:
+                                js_bytes += [b]
+                            asset_json['pages'] += [{
+                                'data':js_bytes
+                            }]
             elif line[0] == 'C':
                 pass
             elif line[0] == 'P':
@@ -133,8 +172,9 @@ if __name__ == '__main__':
                 anim_json['controlPoints'] += [{
                     'x': float(params[1]), 
                     'y': float(params[2]),
-                    'z': float(params[3])
+                    'z': (float(params[3])-cp_anim_precent)/100
                 }]
+                cp_anim_precent += (float(params[3])-cp_anim_precent)
                 total_control_points += 1
 
     if not anim_json == None:

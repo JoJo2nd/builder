@@ -31,6 +31,9 @@ def convertJsonFBSToBin(IN_FLATC, in_value, in_fbs_def_path, json_obj_path, in_t
     in_log.write(str(cmdline) +'\n')
     p = Popen(cmdline, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
+    if not p.returncode == 0:
+        print(stdout+'\n')
+        raise ValueError('flatc compiler returned an error:'+stdout)
     in_log.write(stdout+'\n')
     in_log.write(stderr+'\n')    
 
@@ -41,6 +44,10 @@ def convertJsonFBSToBin(IN_FLATC, in_value, in_fbs_def_path, json_obj_path, in_t
     p = Popen(cmdline, stdout=PIPE)
     includes_string = p.communicate()[0]
     in_log.write(includes_string+'\n')
+
+    if not p.returncode == 0:
+        print(includes_string+'\n')
+        raise ValueError('flatc compiler returned an error:'+includes_string)
 
     includes = [in_fbs_def_path]
     includes += [inc[0:-1].strip().strip('\\') for inc in includes_string.split('\n')[1:-1]]
