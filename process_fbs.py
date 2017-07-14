@@ -31,11 +31,19 @@ if __name__ == '__main__':
     p = Popen(cmdline)
     p.wait()
 
+    if not p.returncode == 0:
+        print(includes_string+'\n')
+        raise ValueError('flatc compiler returned an error:'+includes_string)
+
     cmdline1 = cmdline
     cmdline = FLATC
     cmdline += ' -M --cpp ' + fbs_def_path
     p = Popen(cmdline, stdout=PIPE)
     includes_string = p.communicate()[0]
+
+    if not p.returncode == 0:
+        print(includes_string+'\n')
+        raise ValueError('flatc compiler returned an error:'+includes_string)
 
     includes = [obj_path]
     includes += [inc[0:-1].strip().strip('\\') for inc in includes_string.split('\n')[1:-1]]
