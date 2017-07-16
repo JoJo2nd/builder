@@ -93,9 +93,9 @@ def readSpriteFile(filebuf, palettes, full_pal):
             pal += [{'r':rgb[0], 'g':rgb[1], 'b':rgb[2]}]
         pal_str = str(pal)
         if not pal_str in palettes:
+            palette_idx = len(palettes)
             palettes[pal_str] = palette_idx
             full_pal += [{'transparent':sprite['transparent'], 'pal':pal}]
-            palette_idx += 1
         frame['palette'] = palettes[pal_str]
         frame['data'] = []
         for b in range(frame_size):
