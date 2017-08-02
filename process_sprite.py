@@ -160,6 +160,11 @@ if __name__ == '__main__':
                     'events':[]
                 }
 
+                if 'canInterrupt' in line.split():
+                    anim_json['canInterrupt'] = True
+                if 'alwaysInterrupts' in line.split():
+                    anim_json['alwaysInterrupts'] = True
+
                 if 'flipx' in line.split():
                     anim_json['flipx'] = True
                     anim_json['flipSource']=line.split()[2]
