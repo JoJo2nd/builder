@@ -6,6 +6,7 @@ import os
 from os.path import join, realpath, split, splitext
 import zipfile
 import base64
+import re
 from PIL import Image
 from gamecommon.utils import convertJsonFBSToBin, formatString, scanJSONStringForAssetUUIDs
 from subprocess import Popen, PIPE
@@ -82,6 +83,12 @@ def readSpriteFile(filebuf, palettes, full_pal):
         sprite['transparent'] = P
     except:
         sprite['transparent'] = -1
+    sprite['layers'] = []
+    current_layer = {
+        'order': 0,
+        'type': 'Unknown',
+        'frames': []
+    }
     for f in range(sprite['frameCount']):
         frame = {}
         frame['delay'] = int(round(unpack_from('=H', filebytes, data_ofs)[0] / 10))
@@ -101,10 +108,62 @@ def readSpriteFile(filebuf, palettes, full_pal):
         for b in range(frame_size):
             frame['data'] += [unpack_from('=B', filebytes, data_ofs)[0]]
             data_ofs += calcsize('=B')
-        sprite['frames'] += [frame]
+        current_layer['frames'] += [frame]
+    sprite['layers'] += [current_layer]
 
     return sprite
 
+def readSplitLayerSpriteFile(filepath, palettes, full_pal):
+    # Read a collection fo files with the file name format [filepath w/o ext]-[layername]-[layerorder]
+    # and merge these into a single sprite image to process
+    file_path_root, file_name = split(filepath)
+    file_path_base, file_path_ext = splitext(file_name)
+
+    log.write("Reading multi-layer sprite file. Searching for '")
+    log.write("%s\-(Char|Gun)\-\d+\.spr'\n"%(file_path_base))
+
+    sprite_files = []
+    for root, dirs, files in os.walk(file_path_root):
+        sprite_files += [os.path.realpath(os.path.join(root, x)) for x in files if re.search("%s\-(Char|Gun)\-(\d+)\.spr"%(file_path_base), x)]
+
+    log.write("Found Layer sprite files %s\n"%(str(sprite_files)))
+
+    all_inputs = []
+    final_sprite = None
+    for sprite in sprite_files:
+        with open(sprite, 'rb') as f:
+            all_inputs += [sprite]
+            match = re.search("-(Char|Gun)-(\d+)\.spr", split(sprite)[1])
+            sprite_layer = readSpriteFile(f, palettes, full_pal)
+            # TODO: fix up layer order and type 
+            # e.g.
+            sprite_layer['layers'][0]['order'] = int(match.group(2))
+            sprite_layer['layers'][0]['type'] = match.group(1)
+            if final_sprite == None:
+                final_sprite = sprite_layer
+            else:
+                final_sprite['layers'] += sprite_layer['layers']
+
+    return final_sprite, all_inputs
+
+
+def spriteFrameBBox(sprite, frame):
+    transparent_px = sprite['transparent']
+    frame_px = frame['data']
+    sw = sprite['width']
+    sh = sprite['height'] 
+    l = sprite['width']+1
+    r = -1
+    t = sprite['height']+1
+    b = -1
+    for y in range(sh):
+        for x in range(sw):
+            if frame_px[y*sw+x] != transparent_px:
+                l = min(l, x)
+                r = max(r, x)
+                t = min(t, y)
+                b = max(b, y)
+    return (l, (sh-t), r+1, (sh-b)-1)
 
 if __name__ == '__main__':
     with open(sys.argv[1]) as fin:
@@ -155,7 +214,7 @@ if __name__ == '__main__':
                     'animType':line.split()[1],
                     'flipx':False,
                     'curveType':'Linear',
-                    'frames':[],
+                    'layers':[],
                     'controlPoints':[],
                     'events':[]
                 }
@@ -172,6 +231,11 @@ if __name__ == '__main__':
                     log.write("opening .csv file %s\n"%(csv_path))
                     found_inputs += [csv_path]
                     with open(csv_path, 'rb') as csv_f:
+                        layer = {
+                            'order': 0,
+                            'type': 'Unknown',
+                            'frames': []
+                        }
                         for cline in csv_f.readlines()[1:]:
                             # "Name","Transparent Color","Transparent Color(Hex)","Delay(1/60)","File Name","Width","Height"
                             # "Frame1","16777215","00FFFFFF","6","walk_0000.png","32","48"
@@ -192,7 +256,7 @@ if __name__ == '__main__':
                             total_pages += 1
                             frame_js['width'] = int(params[5].strip('"'))
                             frame_js['height'] = int(params[6].strip('"'))
-                            anim_json['frames'] += [frame_js]
+                            layer['frames'] += [frame_js]
                             total_frames += 1
                             found_inputs += [tex_path]
 
@@ -223,21 +287,40 @@ if __name__ == '__main__':
                                 'type':'FullColour',
                                 'data':js_bytes
                             }]
+                        anim_json['layers'] = layer
                 elif splitext(csv_path)[1] == '.spr':
                     log.write("opening .spr file %s\n"%(csv_path))
-                    found_inputs += [csv_path]
-                    with open(csv_path, 'rb') as spr_f:
-                        sprite_data = readSpriteFile(spr_f, palettes, asset_json['palettes'])
-                        for f in sprite_data['frames']:
+                    if not os.path.exists(csv_path):
+                        sprite_data, all_inputs = readSplitLayerSpriteFile(csv_path, palettes, asset_json['palettes'])
+                        found_inputs += all_inputs
+                    else:
+                        found_inputs += [csv_path]
+                        sprite_data = readSpriteFile(open(csv_path, 'rb'), palettes, asset_json['palettes'])
+                    frame_len = 0
+                    for sprite_layer in sprite_data['layers']:
+                        log.write(str(sprite_layer))
+                        layer = {
+                            'order': sprite_layer['order'],
+                            'type': sprite_layer['type'],
+                            'frames': []
+                        }
+                        assert frame_len == 0 or len(sprite_layer['frames']) == frame_len, "Frame count across all layers MUST be the same"
+                        frame_len = len(sprite_layer['frames'])
+                        for f in sprite_layer['frames']:
                             frame_js = {}
                             frame_js['length'] = f['delay']
                             frame_js['width'] = sprite_data['width']
                             frame_js['height'] = sprite_data['height']
                             # TODO: tight bounds
-                            frame_js['left'] = 0
-                            frame_js['top'] = sprite_data['height']
-                            frame_js['right'] = sprite_data['width']
-                            frame_js['bottom'] = 0 
+                            bbox = spriteFrameBBox(sprite_data, f)
+                            frame_js['left'] = bbox[0]
+                            frame_js['top'] = bbox[1]
+                            frame_js['right'] = bbox[2]
+                            frame_js['bottom'] = bbox[3]
+                            # frame_js['left'] = 0
+                            # frame_js['top'] = sprite_data['height']
+                            # frame_js['right'] = sprite_data['width']
+                            # frame_js['bottom'] = 0 
                             frame_js['page'] = total_pages
                             asset_json['pages'] += [{
                                 'type':'Palette',
@@ -248,7 +331,8 @@ if __name__ == '__main__':
                             }]
                             total_pages += 1
                             total_frames += 1
-                            anim_json['frames'] += [frame_js]
+                            layer['frames'] += [frame_js]
+                    anim_json['layers'] += [layer]
                 else:
                     raise ValueError("Unknown file type %s"%(csv_path))
             elif line[0] == 'C':
