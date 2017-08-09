@@ -132,18 +132,20 @@ def readSplitLayerSpriteFile(filepath, palettes, full_pal):
     final_sprite = None
     for sprite in sprite_files:
         with open(sprite, 'rb') as f:
+            log.write("Opened %s\n"%(sprite))
             all_inputs += [sprite]
             match = re.search("-(Char|Gun)-(\d+)\.spr", split(sprite)[1])
             sprite_layer = readSpriteFile(f, palettes, full_pal)
-            # TODO: fix up layer order and type 
-            # e.g.
             sprite_layer['layers'][0]['order'] = int(match.group(2))
             sprite_layer['layers'][0]['type'] = match.group(1)
             if final_sprite == None:
                 final_sprite = sprite_layer
+                log.write("initial layer set\n%s\n"%(str(final_sprite['layers'])))
             else:
                 final_sprite['layers'] += sprite_layer['layers']
+                log.write("layer add\n%s\n"%(str(final_sprite['layers'])))
 
+    log.write("layer sprite read finished\n")
     return final_sprite, all_inputs
 
 
@@ -332,7 +334,7 @@ if __name__ == '__main__':
                             total_pages += 1
                             total_frames += 1
                             layer['frames'] += [frame_js]
-                    anim_json['layers'] += [layer]
+                        anim_json['layers'] += [layer]
                 else:
                     raise ValueError("Unknown file type %s"%(csv_path))
             elif line[0] == 'C':
